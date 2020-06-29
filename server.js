@@ -1,4 +1,4 @@
-onst express = require('express')
+const express = require('express')
 const app = express()
 app.use('/elb-healthcheck', require('express-healthcheck')());
 app.listen(8080)
@@ -82,7 +82,7 @@ io.sockets.on("connection", function(socket) {
     //console.log(data.id+" "+ data.tx+" "+data.ty+" "+data.tz);
     socket.broadcast.emit("playerMoved", data);
   });
-  
+
 //   socket.on("emojiUpdate", function(data) {
 //     if (!players[data.id]) return;
 //     players[data.id].emote = data.emote;
