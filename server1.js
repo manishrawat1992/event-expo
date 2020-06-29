@@ -1,14 +1,30 @@
-onst express = require('express')
+const express = require('express')
 const app = express()
 app.use('/elb-healthcheck', require('express-healthcheck')());
 app.listen(8080)
+
 var server = require("http").createServer();
 var io = require("socket.io")(server);
+
+var redisHost = '10.148.0.5'
+var redis  = require('redis');
+client = redis.createClient(redisHost);
+ 
+// Create and use a Socket.IO Redis store
+var RedisStore = require('socket.io/lib/stores/redis')
+io.set('store', new RedisStore({
+  redisPub : redis.createClient(redisHost),
+  redisSub : redis.createClient(redisHost),
+  redisClient : client
+}));
+
 var players = {};
 var total=0;
+ 
 function Player(id) {
   this.id = id;
   this.no = -1;
+ 
   //movement
   // this.x = 0;
   // this.y = 1;
@@ -19,12 +35,14 @@ function Player(id) {
   this.tx = 0;
   this.ty = 0;
   this.tz = 0;
+ 
   //avatar
   this.gender = -1;
   this.hat = -1;
   this.glass = -1;
   this.skin = -1;
   this.dress = -1;
+ 
   //info
   this.entity = null;
   this.name = "Bob";
@@ -32,40 +50,48 @@ function Player(id) {
   this.roomID = -1;
   this.emote = -1;
 }
+ 
 io.sockets.on("connection", function(socket) {
-  console.log("Client has connected!");
+  //console.log("Client has connected!");
+ 
   socket.on("initialize", function(data) {
-    var id = socket.id;
+    var total = client.incr('clients');
+
     var newPlayer = new Player(id);
-    players[id] = newPlayer;
-    players[id].name = data.name;
-    players[id].userid = data.userid;
-    players[id].gender = data.gender;
-    players[id].skin = data.skin;
-    players[id].glass = data.glass;
-    players[id].hat = data.hat;
-    players[id].dress = data.dress;
-    players[id].roomID = data.roomID;
-    players[id].userid = data.userid;
-    players[id].no = data.no;
+    newPlayer.name = data.name;
+    newPlayer.userid = data.userid;
+    newPlayer.gender = data.gender;
+    newPlayer.skin = data.skin;
+    newPlayer.glass = data.glass;
+    newPlayer.hat = data.hat;
+    newPlayer.dress = data.dress;
+    newPlayer.roomID = data.roomID;
+    newPlayer.userid = data.userid;
+    newPlayer.no = data.no;
+
+    client.set('socket:' + socket.id, JSON.stringify(newPlayer));
+
+    client.keys('')
+
     socket.emit("playerData", { id: id, players: players });
     socket.broadcast.emit("playerJoined", newPlayer);
     console.log(
       "Client with name " +
-        players[id].name +
+        newPlayer.name +
         " has been initalized" +
         " gender: " +
-        players[id].gender +
+        newPlayer.gender +
         " skin: " +
-        players[id].skin +
+        newPlayer.skin +
         " glass: " +
-        players[id].glass +
+        newPlayer.glass +
         " uid: " +
-        players[id].userid
+        newPlayer.userid
     );
     total+=1;
     console.log('The Total active clients: '+total);
   });
+ 
   socket.on("positionUpdate", function(data) {
     if (!players[data.id]) return;
     // players[data.id].x = data.x;
@@ -82,13 +108,15 @@ io.sockets.on("connection", function(socket) {
     //console.log(data.id+" "+ data.tx+" "+data.ty+" "+data.tz);
     socket.broadcast.emit("playerMoved", data);
   });
-  
+ 
 //   socket.on("emojiUpdate", function(data) {
 //     if (!players[data.id]) return;
 //     players[data.id].emote = data.emote;
+ 
 //     console.log("emoji:" + data.emote);
 //     socket.broadcast.emit("changeEmoji", data);
 //   });
+ 
 //   socket.on("avatarUpdate", function(data) {
 //     if (!players[data.id]) return;
 //     players[data.id].gender = data.gender;
@@ -96,8 +124,10 @@ io.sockets.on("connection", function(socket) {
 //     players[data.id].glass = data.glass;
 //     players[data.id].hat = data.hat;
 //     players[data.id].dress = data.dress;
+ 
 //     socket.broadcast.emit("changeAvatar", data);
 //   });
+ 
   socket.on("disconnect", function() {
     if (!players[socket.id]) return;
     delete players[socket.id];
@@ -108,5 +138,5 @@ io.sockets.on("connection", function(socket) {
     console.log('The Total active clients: '+total);
   });
 });
-server.listen(7102)
+server.listen(80)
 console.log("Server started.");
