@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "express": "^4.16.2",
-    "socket.io": "^2.0.4"
+    "socket.io": "^2.0.4",
     "redis":"3.0.2",
     "express-healthcheck":"0.1.0"
   },
