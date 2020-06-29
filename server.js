@@ -33,7 +33,7 @@ function Player(id) {
   this.emote = -1;
 }
 io.sockets.on("connection", function(socket) {
-  console.log("Client has connected!");
+  console.log("Client has been connected!");
   socket.on("initialize", function(data) {
     var id = socket.id;
     var newPlayer = new Player(id);
